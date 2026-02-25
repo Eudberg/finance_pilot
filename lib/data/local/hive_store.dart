@@ -20,6 +20,7 @@ class HiveStore {
   static const String _deductionsKey = 'deductions';
   static const String _billsKey = 'bills';
   static const String _goalConfigKey = 'goalConfig';
+  static const String _goalChecklistStateKey = 'goalChecklistState';
 
   late final Box<dynamic> _configBox;
   late final Box<dynamic> _deductionsBox;
@@ -103,5 +104,18 @@ class HiveStore {
         .whereType<Map>()
         .map((item) => LedgerEntry.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Map<String, dynamic> loadGoalChecklistState() {
+    final dynamic value =
+        _goalsBox.get(_goalChecklistStateKey, defaultValue: <String, dynamic>{});
+    if (value is! Map) {
+      return <String, dynamic>{};
+    }
+    return Map<String, dynamic>.from(value);
+  }
+
+  Future<void> saveGoalChecklistState(Map<String, dynamic> state) async {
+    await _goalsBox.put(_goalChecklistStateKey, state);
   }
 }

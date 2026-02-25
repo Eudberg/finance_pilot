@@ -27,6 +27,8 @@ class AppState extends ChangeNotifier {
     beerPctOfSafeRemainder: 0,
   );
   List<LedgerEntry> _ledger = const [];
+  Map<String, Map<String, bool>> _goalChecklistState =
+      const <String, Map<String, bool>>{};
   CashViewMode _cashViewMode = CashViewMode.settlement;
 
   SalaryConfig get config => _config;
@@ -66,6 +68,22 @@ class AppState extends ChangeNotifier {
     _bills = _store.loadBills();
     _goals = loadedGoals ?? _goals;
     _ledger = _store.listLedgerEntries();
+    final Map<String, dynamic> rawChecklistState =
+        _store.loadGoalChecklistState();
+    final Map<String, Map<String, bool>> parsedChecklistState = {};
+    rawChecklistState.forEach((bucket, value) {
+      if (value is! Map) {
+        return;
+      }
+      final Map<String, bool> perGoal = {};
+      value.forEach((goalKey, doneValue) {
+        if (goalKey is String && doneValue is bool) {
+          perGoal[goalKey] = doneValue;
+        }
+      });
+      parsedChecklistState[bucket] = perGoal;
+    });
+    _goalChecklistState = parsedChecklistState;
     notifyListeners();
   }
 
@@ -137,6 +155,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addPriorityBill({
+    required String name,
+    required double amount,
+    required PriorityBillDueType dueType,
+    int? customDay,
+  }) async {
+    final PriorityBill bill = PriorityBill(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: name,
+      amount: amount,
+      dueType: dueType,
+      customDay: dueType == PriorityBillDueType.customDate ? customDay : null,
+      active: true,
+    );
+
+    _bills = [..._bills, bill];
+    await _store.saveBills(_bills);
+    notifyListeners();
+  }
+
   Future<void> setGoalConfig({
     required double reserveMinPerCycle,
     required double serasaMinPerCycle,
@@ -150,6 +188,34 @@ class AppState extends ChangeNotifier {
       beerPctOfSafeRemainder: beerPctOfSafeRemainder,
     );
     await _store.saveGoals(_goals);
+    notifyListeners();
+  }
+
+  bool isGoalDone({
+    required String cycleBucket,
+    required String goal,
+  }) {
+    return _goalChecklistState[cycleBucket]?[goal] ?? false;
+  }
+
+  Future<void> setGoalDone({
+    required String cycleBucket,
+    required String goal,
+    required bool done,
+  }) async {
+    final Map<String, bool> currentBucket =
+        Map<String, bool>.from(_goalChecklistState[cycleBucket] ?? {});
+    currentBucket[goal] = done;
+    _goalChecklistState = {
+      ..._goalChecklistState,
+      cycleBucket: currentBucket,
+    };
+
+    final Map<String, dynamic> serialized = {};
+    _goalChecklistState.forEach((bucket, value) {
+      serialized[bucket] = Map<String, bool>.from(value);
+    });
+    await _store.saveGoalChecklistState(serialized);
     notifyListeners();
   }
 }

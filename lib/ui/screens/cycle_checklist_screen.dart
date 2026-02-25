@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:finance_pilot/domain/agent/goal_agent.dart';
 import 'package:finance_pilot/domain/engine/finance_engine.dart';
 import 'package:finance_pilot/domain/models/priority_bill.dart';
 import 'package:finance_pilot/state/app_state.dart';
+import 'package:finance_pilot/ui/screens/add_expense_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +19,19 @@ class CycleChecklistScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Checklist do Ciclo'),
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AddExpenseScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              tooltip: 'Adicionar',
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Dia 20'),
@@ -60,6 +75,11 @@ class _CycleTabContent extends StatelessWidget {
     return Consumer<AppState>(
       builder: (context, state, _) {
         final bool isDay20 = dueType == PriorityBillDueType.day20;
+        final CycleType cycleType = isDay20 ? CycleType.day20 : CycleType.day5;
+        final String cycleBucket =
+            buildGoalChecklistBucket(cycleType, DateTime.now());
+        final List<String> generatedGoals =
+            generateActionableGoals(state, cycleType);
         final double cash = isDay20 ? state.advanceAmount : state.settlementAmount;
         final List<PriorityBill> cycleBills = state.bills.where((bill) {
           if (!bill.active) {
@@ -116,6 +136,33 @@ class _CycleTabContent extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Text(
+              'Metas sugeridas',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            ...generatedGoals.map(
+              (goal) => Card(
+                child: CheckboxListTile(
+                  value: state.isGoalDone(
+                    cycleBucket: cycleBucket,
+                    goal: goal,
+                  ),
+                  onChanged: (value) {
+                    context.read<AppState>().setGoalDone(
+                          cycleBucket: cycleBucket,
+                          goal: goal,
+                          done: value ?? false,
+                        );
+                  },
+                  title: Text(goal),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
