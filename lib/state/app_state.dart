@@ -79,11 +79,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> markBillPaid(String id) async {
     bool updated = false;
+    PriorityBill? paidBill;
     final List<PriorityBill> nextBills = _bills.map((bill) {
       if (bill.id != id || !bill.active) {
         return bill;
       }
       updated = true;
+      paidBill = bill;
       return PriorityBill(
         id: bill.id,
         name: bill.name,
@@ -100,6 +102,18 @@ class AppState extends ChangeNotifier {
 
     _bills = nextBills;
     await _store.saveBills(_bills);
+    if (paidBill != null) {
+      final LedgerEntry entry = LedgerEntry(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        date: DateTime.now(),
+        type: LedgerEntryType.expense,
+        category: 'priority_bill',
+        amount: paidBill!.amount,
+        note: 'Pagamento: ${paidBill!.name}',
+      );
+      await _store.addLedgerEntry(entry);
+      _ledger = [..._ledger, entry];
+    }
     notifyListeners();
   }
 

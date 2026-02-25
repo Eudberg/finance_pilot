@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:finance_pilot/data/local/hive_store.dart';
 import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/theme/app_theme.dart';
+import 'package:finance_pilot/ui/screens/cycle_checklist_screen.dart';
 import 'package:finance_pilot/ui/widgets/level_header.dart';
 import 'package:finance_pilot/ui/widgets/primary_button.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        home: const HomePage(),
+        home: const CycleChecklistScreen(),
       ),
     );
   }
