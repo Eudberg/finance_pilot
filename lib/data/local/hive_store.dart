@@ -21,6 +21,7 @@ class HiveStore {
   static const String _billsKey = 'bills';
   static const String _goalConfigKey = 'goalConfig';
   static const String _goalChecklistStateKey = 'goalChecklistState';
+  static const String _notificationsEnabledKey = 'notificationsEnabled';
 
   late final Box<dynamic> _configBox;
   late final Box<dynamic> _deductionsBox;
@@ -117,5 +118,18 @@ class HiveStore {
 
   Future<void> saveGoalChecklistState(Map<String, dynamic> state) async {
     await _goalsBox.put(_goalChecklistStateKey, state);
+  }
+
+  bool loadNotificationsEnabled() {
+    final dynamic value =
+        _configBox.get(_notificationsEnabledKey, defaultValue: true);
+    if (value is bool) {
+      return value;
+    }
+    return true;
+  }
+
+  Future<void> saveNotificationsEnabled(bool enabled) async {
+    await _configBox.put(_notificationsEnabledKey, enabled);
   }
 }

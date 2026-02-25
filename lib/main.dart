@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:finance_pilot/data/local/hive_store.dart';
+import 'package:finance_pilot/data/local/notification_service.dart';
 import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/theme/app_theme.dart';
 import 'package:finance_pilot/ui/screens/cycle_checklist_screen.dart';
@@ -10,6 +11,7 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveStore.instance.init();
+  await NotificationService.instance.init();
   runApp(const MyApp());
 }
 

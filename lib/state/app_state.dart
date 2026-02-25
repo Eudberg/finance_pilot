@@ -1,4 +1,5 @@
 import 'package:finance_pilot/data/local/hive_store.dart';
+import 'package:finance_pilot/data/local/notification_service.dart';
 import 'package:finance_pilot/domain/engine/finance_engine.dart';
 import 'package:finance_pilot/domain/models/goal_config.dart';
 import 'package:finance_pilot/domain/models/ledger_entry.dart';
@@ -29,6 +30,7 @@ class AppState extends ChangeNotifier {
   List<LedgerEntry> _ledger = const [];
   Map<String, Map<String, bool>> _goalChecklistState =
       const <String, Map<String, bool>>{};
+  bool _notificationsEnabled = true;
   CashViewMode _cashViewMode = CashViewMode.settlement;
 
   SalaryConfig get config => _config;
@@ -36,6 +38,7 @@ class AppState extends ChangeNotifier {
   List<PriorityBill> get bills => List.unmodifiable(_bills);
   GoalConfig get goals => _goals;
   List<LedgerEntry> get ledger => List.unmodifiable(_ledger);
+  bool get notificationsEnabled => _notificationsEnabled;
   CashViewMode get cashViewMode => _cashViewMode;
 
   double get advanceAmount => calcAdvance(_config);
@@ -68,6 +71,10 @@ class AppState extends ChangeNotifier {
     _bills = _store.loadBills();
     _goals = loadedGoals ?? _goals;
     _ledger = _store.listLedgerEntries();
+    _notificationsEnabled = _store.loadNotificationsEnabled();
+    await NotificationService.instance.scheduleCycleReminders(
+      enabled: _notificationsEnabled,
+    );
     final Map<String, dynamic> rawChecklistState =
         _store.loadGoalChecklistState();
     final Map<String, Map<String, bool>> parsedChecklistState = {};
@@ -175,6 +182,63 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setSalaryConfig({
+    required double grossSalary,
+    required double advancePct,
+    required double settlementPct,
+  }) async {
+    _config = SalaryConfig(
+      grossSalary: grossSalary,
+      advancePct: advancePct,
+      settlementPct: settlementPct,
+    );
+    await _store.saveConfig(_config);
+    notifyListeners();
+  }
+
+  Future<void> addPayrollDeduction({
+    required String name,
+    required double amount,
+    bool active = true,
+  }) async {
+    final PayrollDeduction deduction = PayrollDeduction(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: name,
+      amount: amount,
+      active: active,
+    );
+    _deductions = [..._deductions, deduction];
+    await _store.saveDeductions(_deductions);
+    notifyListeners();
+  }
+
+  Future<void> updatePayrollDeduction({
+    required String id,
+    required String name,
+    required double amount,
+    required bool active,
+  }) async {
+    _deductions = _deductions.map((deduction) {
+      if (deduction.id != id) {
+        return deduction;
+      }
+      return PayrollDeduction(
+        id: deduction.id,
+        name: name,
+        amount: amount,
+        active: active,
+      );
+    }).toList();
+    await _store.saveDeductions(_deductions);
+    notifyListeners();
+  }
+
+  Future<void> removePayrollDeduction(String id) async {
+    _deductions = _deductions.where((deduction) => deduction.id != id).toList();
+    await _store.saveDeductions(_deductions);
+    notifyListeners();
+  }
+
   Future<void> setGoalConfig({
     required double reserveMinPerCycle,
     required double serasaMinPerCycle,
@@ -216,6 +280,46 @@ class AppState extends ChangeNotifier {
       serialized[bucket] = Map<String, bool>.from(value);
     });
     await _store.saveGoalChecklistState(serialized);
+    notifyListeners();
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    _notificationsEnabled = enabled;
+    await _store.saveNotificationsEnabled(enabled);
+    await NotificationService.instance.scheduleCycleReminders(enabled: enabled);
+    notifyListeners();
+  }
+
+  Future<void> restoreExampleData() async {
+    _config = const SalaryConfig(
+      grossSalary: 4500,
+      advancePct: 0.4,
+      settlementPct: 0.6,
+    );
+    _deductions = const [
+      PayrollDeduction(
+        id: 'example-1',
+        name: 'Plano de saude',
+        amount: 220,
+        active: true,
+      ),
+      PayrollDeduction(
+        id: 'example-2',
+        name: 'Vale transporte',
+        amount: 180,
+        active: true,
+      ),
+    ];
+    _goals = const GoalConfig(
+      reserveMinPerCycle: 300,
+      serasaMinPerCycle: 250,
+      beerMaxAbsolute: 120,
+      beerPctOfSafeRemainder: 0.15,
+    );
+
+    await _store.saveConfig(_config);
+    await _store.saveDeductions(_deductions);
+    await _store.saveGoals(_goals);
     notifyListeners();
   }
 }

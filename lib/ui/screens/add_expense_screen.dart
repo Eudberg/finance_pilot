@@ -24,6 +24,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final TextEditingController _customDayController = TextEditingController();
 
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final NumberFormat _currency =
+      NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
   DateTime _expenseDate = DateTime.now();
   String _expenseCategory = _categories.first;
@@ -98,7 +100,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _expenseCategory = _categories.first;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Despesa salva')),
+      SnackBar(content: Text('Despesa salva: ${_currency.format(amount)}')),
     );
   }
 
@@ -115,6 +117,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final int? customDay = _priorityDueType == PriorityBillDueType.customDate
         ? int.tryParse(_customDayController.text.trim())
         : null;
+    if (_priorityDueType == PriorityBillDueType.customDate &&
+        (customDay == null || customDay < 1 || customDay > 31)) {
+      return;
+    }
 
     await context.read<AppState>().addPriorityBill(
           name: _priorityNameController.text.trim(),
@@ -134,7 +140,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _priorityDueType = PriorityBillDueType.day20;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Prioridade salva')),
+      SnackBar(content: Text('Prioridade salva: ${_currency.format(amount)}')),
     );
   }
 

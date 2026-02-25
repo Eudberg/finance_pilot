@@ -5,6 +5,7 @@ import 'package:finance_pilot/domain/engine/finance_engine.dart';
 import 'package:finance_pilot/domain/models/priority_bill.dart';
 import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/ui/screens/add_expense_screen.dart';
+import 'package:finance_pilot/ui/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,17 @@ class CycleChecklistScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Checklist do Ciclo'),
           actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+            ),
             IconButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -144,45 +156,49 @@ class _CycleTabContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ...generatedGoals.map(
-              (goal) => Card(
-                child: CheckboxListTile(
-                  value: state.isGoalDone(
-                    cycleBucket: cycleBucket,
-                    goal: goal,
+              (goal) => _AnimatedCycleCard(
+                child: Card(
+                  child: CheckboxListTile(
+                    value: state.isGoalDone(
+                      cycleBucket: cycleBucket,
+                      goal: goal,
+                    ),
+                    onChanged: (value) {
+                      context.read<AppState>().setGoalDone(
+                            cycleBucket: cycleBucket,
+                            goal: goal,
+                            done: value ?? false,
+                          );
+                    },
+                    title: Text(goal),
+                    controlAffinity: ListTileControlAffinity.leading,
                   ),
-                  onChanged: (value) {
-                    context.read<AppState>().setGoalDone(
-                          cycleBucket: cycleBucket,
-                          goal: goal,
-                          done: value ?? false,
-                        );
-                  },
-                  title: Text(goal),
-                  controlAffinity: ListTileControlAffinity.leading,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Quanto cai: ${currency.format(cash)}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ],
+            _AnimatedCycleCard(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Quanto cai: ${currency.format(cash)}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -195,39 +211,52 @@ class _CycleTabContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             if (cycleBills.isEmpty)
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Nenhuma prioridade ativa neste ciclo.'),
+              _AnimatedCycleCard(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.celebration_outlined,
+                          size: 28,
+                        ),
+                        SizedBox(height: 8),
+                        Text('Nenhuma prioridade ativa neste ciclo.'),
+                      ],
+                    ),
+                  ),
                 ),
               )
             else
               ...cycleBills.map(
-                (bill) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                bill.name,
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(currency.format(bill.amount)),
-                            ],
+                (bill) => _AnimatedCycleCard(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  bill.name,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(currency.format(bill.amount)),
+                              ],
+                            ),
                           ),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: () {
-                            context.read<AppState>().markBillPaid(bill.id);
-                          },
-                          child: const Text('Marcar como pago'),
-                        ),
-                      ],
+                          FilledButton.tonal(
+                            onPressed: () {
+                              context.read<AppState>().markBillPaid(bill.id);
+                            },
+                            child: const Text('Marcar como pago'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -240,28 +269,30 @@ class _CycleTabContent extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _GoalProgressRow(
-                      label: 'Reserva minima',
-                      current: math.min(cyclePool, state.goals.reserveMinPerCycle),
-                      target: state.goals.reserveMinPerCycle,
-                      progress: reserveProgress,
-                      formatter: currency,
-                    ),
-                    const SizedBox(height: 12),
-                    _GoalProgressRow(
-                      label: 'Serasa minima',
-                      current:
-                          math.min(afterReserve, state.goals.serasaMinPerCycle),
-                      target: state.goals.serasaMinPerCycle,
-                      progress: serasaProgress,
-                      formatter: currency,
-                    ),
-                  ],
+            _AnimatedCycleCard(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _GoalProgressRow(
+                        label: 'Reserva minima',
+                        current: math.min(cyclePool, state.goals.reserveMinPerCycle),
+                        target: state.goals.reserveMinPerCycle,
+                        progress: reserveProgress,
+                        formatter: currency,
+                      ),
+                      const SizedBox(height: 12),
+                      _GoalProgressRow(
+                        label: 'Serasa minima',
+                        current:
+                            math.min(afterReserve, state.goals.serasaMinPerCycle),
+                        target: state.goals.serasaMinPerCycle,
+                        progress: serasaProgress,
+                        formatter: currency,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -273,20 +304,22 @@ class _CycleTabContent extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: beerAllowance > 0
-                    ? Text(
-                        'Pode ate ${currency.format(beerAllowance)}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      )
-                    : Text(
-                        'Hoje nao pode: $blockedReason',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+            _AnimatedCycleCard(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: beerAllowance > 0
+                      ? Text(
+                          'Pode ate ${currency.format(beerAllowance)}',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        )
+                      : Text(
+                          'Hoje nao pode: $blockedReason',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                ),
               ),
             ),
           ],
@@ -328,11 +361,40 @@ class _GoalProgressRow extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress,
-          minHeight: 10,
+        TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 500),
+          tween: Tween<double>(begin: 0, end: progress),
+          builder: (context, value, _) {
+            return LinearProgressIndicator(
+              value: value,
+              minHeight: 10,
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _AnimatedCycleCard extends StatelessWidget {
+  const _AnimatedCycleCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 280),
+      tween: Tween<double>(begin: 0, end: 1),
+      builder: (context, value, _) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 8 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
