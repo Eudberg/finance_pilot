@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:finance_pilot/data/local/hive_store.dart';
+import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/theme/app_theme.dart';
 import 'package:finance_pilot/ui/widgets/level_header.dart';
 import 'package:finance_pilot/ui/widgets/primary_button.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,12 +17,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Finance Pilot',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const HomePage(),
+    return ChangeNotifierProvider<AppState>(
+      create: (_) => AppState()..load(),
+      child: MaterialApp(
+        title: 'Finance Pilot',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        home: const HomePage(),
+      ),
     );
   }
 }
