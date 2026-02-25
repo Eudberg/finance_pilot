@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:finance_pilot/data/local/hive_store.dart';
 import 'package:finance_pilot/theme/app_theme.dart';
 import 'package:finance_pilot/ui/widgets/level_header.dart';
 import 'package:finance_pilot/ui/widgets/primary_button.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveStore.instance.init();
   runApp(const MyApp());
 }
 
