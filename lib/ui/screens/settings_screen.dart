@@ -1,5 +1,6 @@
-﻿import 'package:finance_pilot/domain/models/payroll_deduction.dart';
+import 'package:finance_pilot/domain/models/payroll_deduction.dart';
 import 'package:finance_pilot/state/app_state.dart';
+import 'package:finance_pilot/ui/screens/off_days_calendar_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -161,6 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       text: initial == null ? '' : initial.amount.toStringAsFixed(2),
     );
     bool active = initial?.active ?? true;
+    final BuildContext rootContext = context;
 
     await showDialog<void>(
       context: context,
@@ -207,7 +209,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final String name = nameController.text.trim();
                     final double? amount = _parseNumber(amountController.text);
                     if (name.isEmpty || amount == null || amount <= 0) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      if (!mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
                         const SnackBar(
                           content: Text('Nome e valor validos sao obrigatorios'),
                         ),
@@ -230,8 +235,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     }
 
+                    Navigator.of(dialogContext).pop();
+
                     if (mounted) {
-                      Navigator.of(dialogContext).pop();
+                      ScaffoldMessenger.of(rootContext).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            initial == null
+                                ? 'Desconto salvo'
+                                : 'Desconto atualizado',
+                          ),
+                        ),
+                      );
                     }
                   },
                   child: const Text('Salvar'),
@@ -265,6 +280,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) {
                   context.read<AppState>().setNotificationsEnabled(value);
                 },
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month_outlined),
+                  title: const Text('Folgas'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const OffDaysCalendarScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Card(
@@ -362,13 +392,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       else
                         ...state.deductions.map(
                           (deduction) => ListTile(
+                            key: ValueKey(deduction.id),
                             contentPadding: EdgeInsets.zero,
                             title: Text(deduction.name),
                             subtitle: Text(_currency.format(deduction.amount)),
                             leading: Switch(
                               value: deduction.active,
-                              onChanged: (value) {
-                                state.updatePayrollDeduction(
+                              onChanged: (value) async {
+                                await context.read<AppState>().updatePayrollDeduction(
                                   id: deduction.id,
                                   name: deduction.name,
                                   amount: deduction.amount,
@@ -388,8 +419,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   icon: const Icon(Icons.edit_outlined),
                                 ),
                                 IconButton(
-                                  onPressed: () {
-                                    state.removePayrollDeduction(deduction.id);
+                                  onPressed: () async {
+                                    await context.read<AppState>().removePayrollDeduction(deduction.id);
                                   },
                                   icon: const Icon(Icons.delete_outline),
                                 ),

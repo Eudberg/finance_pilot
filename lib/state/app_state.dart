@@ -30,6 +30,7 @@ class AppState extends ChangeNotifier {
   List<LedgerEntry> _ledger = const [];
   Map<String, Map<String, bool>> _goalChecklistState =
       const <String, Map<String, bool>>{};
+  Set<String> _offDays = const <String>{};
   bool _notificationsEnabled = true;
   CashViewMode _cashViewMode = CashViewMode.settlement;
 
@@ -38,6 +39,7 @@ class AppState extends ChangeNotifier {
   List<PriorityBill> get bills => List.unmodifiable(_bills);
   GoalConfig get goals => _goals;
   List<LedgerEntry> get ledger => List.unmodifiable(_ledger);
+  Set<String> get offDays => Set.unmodifiable(_offDays);
   bool get notificationsEnabled => _notificationsEnabled;
   CashViewMode get cashViewMode => _cashViewMode;
 
@@ -71,6 +73,7 @@ class AppState extends ChangeNotifier {
     _bills = _store.loadBills();
     _goals = loadedGoals ?? _goals;
     _ledger = _store.listLedgerEntries();
+    _offDays = await _store.loadOffDays();
     _notificationsEnabled = _store.loadNotificationsEnabled();
     await NotificationService.instance.scheduleCycleReminders(
       enabled: _notificationsEnabled,
@@ -287,6 +290,23 @@ class AppState extends ChangeNotifier {
     _notificationsEnabled = enabled;
     await _store.saveNotificationsEnabled(enabled);
     await NotificationService.instance.scheduleCycleReminders(enabled: enabled);
+    notifyListeners();
+  }
+
+  Future<void> toggleOffDay(DateTime date) async {
+    final String year = date.year.toString().padLeft(4, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
+    final String dateKey = '$year-$month-$day';
+
+    final Set<String> nextOffDays = Set<String>.from(_offDays);
+    if (nextOffDays.contains(dateKey)) {
+      nextOffDays.remove(dateKey);
+    } else {
+      nextOffDays.add(dateKey);
+    }
+    _offDays = nextOffDays;
+    await _store.toggleOffDay(dateKey);
     notifyListeners();
   }
 

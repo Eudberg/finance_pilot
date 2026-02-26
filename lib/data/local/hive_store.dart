@@ -15,6 +15,7 @@ class HiveStore {
   static const String billsBoxName = 'billsBox';
   static const String goalsBoxName = 'goalsBox';
   static const String ledgerBoxName = 'ledgerBox';
+  static const String offDaysBoxName = 'offDaysBox';
 
   static const String _salaryConfigKey = 'salaryConfig';
   static const String _deductionsKey = 'deductions';
@@ -22,12 +23,14 @@ class HiveStore {
   static const String _goalConfigKey = 'goalConfig';
   static const String _goalChecklistStateKey = 'goalChecklistState';
   static const String _notificationsEnabledKey = 'notificationsEnabled';
+  static const String _offDaysKey = 'offDays';
 
   late final Box<dynamic> _configBox;
   late final Box<dynamic> _deductionsBox;
   late final Box<dynamic> _billsBox;
   late final Box<dynamic> _goalsBox;
   late final Box<dynamic> _ledgerBox;
+  late final Box<dynamic> _offDaysBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -36,6 +39,7 @@ class HiveStore {
     _billsBox = await Hive.openBox<dynamic>(billsBoxName);
     _goalsBox = await Hive.openBox<dynamic>(goalsBoxName);
     _ledgerBox = await Hive.openBox<dynamic>(ledgerBoxName);
+    _offDaysBox = await Hive.openBox<dynamic>(offDaysBoxName);
   }
 
   Future<void> saveConfig(SalaryConfig config) async {
@@ -131,5 +135,26 @@ class HiveStore {
 
   Future<void> saveNotificationsEnabled(bool enabled) async {
     await _configBox.put(_notificationsEnabledKey, enabled);
+  }
+
+  Future<Set<String>> loadOffDays() async {
+    final dynamic value = _offDaysBox.get(_offDaysKey, defaultValue: <String>{});
+    if (value is Set) {
+      return value.whereType<String>().toSet();
+    }
+    if (value is List) {
+      return value.whereType<String>().toSet();
+    }
+    return <String>{};
+  }
+
+  Future<void> toggleOffDay(String dateKey) async {
+    final Set<String> offDays = await loadOffDays();
+    if (offDays.contains(dateKey)) {
+      offDays.remove(dateKey);
+    } else {
+      offDays.add(dateKey);
+    }
+    await _offDaysBox.put(_offDaysKey, offDays);
   }
 }
