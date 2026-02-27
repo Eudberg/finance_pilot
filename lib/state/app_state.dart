@@ -8,10 +8,7 @@ import 'package:finance_pilot/domain/models/priority_bill.dart';
 import 'package:finance_pilot/domain/models/salary_config.dart';
 import 'package:flutter/foundation.dart';
 
-enum CashViewMode {
-  advance,
-  settlement,
-}
+enum CashViewMode { advance, settlement }
 
 class AppState extends ChangeNotifier {
   AppState({HiveStore? store}) : _store = store ?? HiveStore.instance;
@@ -78,8 +75,8 @@ class AppState extends ChangeNotifier {
     await NotificationService.instance.scheduleCycleReminders(
       enabled: _notificationsEnabled,
     );
-    final Map<String, dynamic> rawChecklistState =
-        _store.loadGoalChecklistState();
+    final Map<String, dynamic> rawChecklistState = _store
+        .loadGoalChecklistState();
     final Map<String, Map<String, bool>> parsedChecklistState = {};
     rawChecklistState.forEach((bucket, value) {
       if (value is! Map) {
@@ -258,10 +255,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool isGoalDone({
-    required String cycleBucket,
-    required String goal,
-  }) {
+  bool isGoalDone({required String cycleBucket, required String goal}) {
     return _goalChecklistState[cycleBucket]?[goal] ?? false;
   }
 
@@ -270,13 +264,11 @@ class AppState extends ChangeNotifier {
     required String goal,
     required bool done,
   }) async {
-    final Map<String, bool> currentBucket =
-        Map<String, bool>.from(_goalChecklistState[cycleBucket] ?? {});
+    final Map<String, bool> currentBucket = Map<String, bool>.from(
+      _goalChecklistState[cycleBucket] ?? {},
+    );
     currentBucket[goal] = done;
-    _goalChecklistState = {
-      ..._goalChecklistState,
-      cycleBucket: currentBucket,
-    };
+    _goalChecklistState = {..._goalChecklistState, cycleBucket: currentBucket};
 
     final Map<String, dynamic> serialized = {};
     _goalChecklistState.forEach((bucket, value) {
@@ -293,6 +285,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ✅ FIX: notificar antes do await para UI reagir imediatamente.
   Future<void> toggleOffDay(DateTime date) async {
     final String year = date.year.toString().padLeft(4, '0');
     final String month = date.month.toString().padLeft(2, '0');
@@ -306,8 +299,16 @@ class AppState extends ChangeNotifier {
       nextOffDays.add(dateKey);
     }
     _offDays = nextOffDays;
-    await _store.toggleOffDay(dateKey);
+
+    // Notifica já para o calendário "pintar" na hora.
     notifyListeners();
+
+    // Persistência depois. Se falhar, ao menos o feedback já aconteceu.
+    try {
+      await _store.toggleOffDay(dateKey);
+    } catch (_) {
+      // opcional: registrar log / reverter. Mantido simples.
+    }
   }
 
   Future<void> restoreExampleData() async {
