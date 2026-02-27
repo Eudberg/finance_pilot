@@ -45,14 +45,14 @@ class AppState extends ChangeNotifier {
   double get settlementAmount =>
       calcSettlementAfterPayrollDeductions(_config, _deductions);
 
-  bool _isTodayOffDay() {
-    final DateTime now = DateTime.now();
-    final String year = now.year.toString().padLeft(4, '0');
-    final String month = now.month.toString().padLeft(2, '0');
-    final String day = now.day.toString().padLeft(2, '0');
-    final String todayKey = '$year-$month-$day';
-    return _offDays.contains(todayKey);
+  String dateKeyOf(DateTime d) {
+    final String year = d.year.toString().padLeft(4, '0');
+    final String month = d.month.toString().padLeft(2, '0');
+    final String day = d.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
+
+  bool get isTodayOffDay => _offDays.contains(dateKeyOf(DateTime.now()));
 
   double get beerSpentThisMonth {
     final DateTime now = DateTime.now();
@@ -93,7 +93,7 @@ class AppState extends ChangeNotifier {
   }
 
   double get beerAllowanceToday {
-    if (!_isTodayOffDay()) {
+    if (!isTodayOffDay) {
       return 0.0;
     }
     final double cash = _cashViewMode == CashViewMode.advance
@@ -127,7 +127,7 @@ class AppState extends ChangeNotifier {
   }
 
   String get beerReasonToday {
-    return _isTodayOffDay() ? 'OK' : 'Hoje não é folga';
+    return isTodayOffDay ? 'OK' : 'Hoje não é folga';
   }
 
   Future<void> load() async {
@@ -358,10 +358,7 @@ class AppState extends ChangeNotifier {
 
   // ✅ FIX: notificar antes do await para UI reagir imediatamente.
   Future<void> toggleOffDay(DateTime date) async {
-    final String year = date.year.toString().padLeft(4, '0');
-    final String month = date.month.toString().padLeft(2, '0');
-    final String day = date.day.toString().padLeft(2, '0');
-    final String dateKey = '$year-$month-$day';
+    final String dateKey = dateKeyOf(date);
 
     final Set<String> nextOffDays = Set<String>.from(_offDays);
     if (nextOffDays.contains(dateKey)) {

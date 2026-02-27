@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:finance_pilot/domain/agent/goal_agent.dart';
-import 'package:finance_pilot/domain/engine/finance_engine.dart';
 import 'package:finance_pilot/domain/models/priority_bill.dart';
 import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/ui/screens/add_expense_screen.dart';
@@ -110,17 +109,7 @@ class _CycleTabContent extends StatelessWidget {
           (sum, bill) => sum + bill.amount,
         );
 
-        final double safeRemainder = calcSafeRemainder(
-          cash: cash,
-          prioritiesPending: prioritiesPending,
-          reserveMin: state.goals.reserveMinPerCycle,
-          serasaMin: state.goals.serasaMinPerCycle,
-        );
-
-        final double beerAllowance = calcBeerAllowance(
-          state.goals,
-          safeRemainder,
-        );
+        final double beerAllowance = state.beerAllowanceToday;
 
         final double cyclePool = math.max(cash - prioritiesPending, 0.0);
         final double reserveProgress = state.goals.reserveMinPerCycle <= 0
@@ -136,7 +125,7 @@ class _CycleTabContent extends StatelessWidget {
 
         String blockedReason = '';
         if (beerAllowance <= 0) {
-          if (state.beerReasonToday == 'Hoje não é folga') {
+          if (!state.isTodayOffDay) {
             blockedReason = 'Sem cerveja hoje: não é folga';
           } else if (cash <= prioritiesPending) {
             blockedReason = 'prioridades do ciclo consomem todo o caixa';

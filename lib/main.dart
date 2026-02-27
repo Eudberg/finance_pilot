@@ -3,7 +3,7 @@ import 'package:finance_pilot/data/local/hive_store.dart';
 import 'package:finance_pilot/data/local/notification_service.dart';
 import 'package:finance_pilot/state/app_state.dart';
 import 'package:finance_pilot/theme/app_theme.dart';
-import 'package:finance_pilot/ui/screens/cycle_checklist_screen.dart';
+import 'package:finance_pilot/ui/screens/shell_screen.dart';
 import 'package:finance_pilot/ui/widgets/level_header.dart';
 import 'package:finance_pilot/ui/widgets/primary_button.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        home: const CycleChecklistScreen(),
+        home: const ShellScreen(),
       ),
     );
   }
@@ -44,9 +44,7 @@ class HomePage extends StatelessWidget {
     const double progress = xp / nextLevelXp;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Finance Pilot'),
-      ),
+      appBar: AppBar(title: const Text('Finance Pilot')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -61,9 +59,9 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               'Badges',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             const Wrap(
@@ -76,10 +74,7 @@ class HomePage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            PrimaryButton(
-              label: 'Continuar',
-              onPressed: () {},
-            ),
+            PrimaryButton(label: 'Continuar', onPressed: () {}),
           ],
         ),
       ),
