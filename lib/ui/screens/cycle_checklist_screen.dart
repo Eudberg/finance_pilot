@@ -57,10 +57,7 @@ class CycleChecklistScreen extends StatelessWidget {
               title: 'Dia 20',
               dueType: PriorityBillDueType.day20,
             ),
-            _CycleTabContent(
-              title: 'Dia 5',
-              dueType: PriorityBillDueType.day5,
-            ),
+            _CycleTabContent(title: 'Dia 5', dueType: PriorityBillDueType.day5),
           ],
         ),
       ),
@@ -69,10 +66,7 @@ class CycleChecklistScreen extends StatelessWidget {
 }
 
 class _CycleTabContent extends StatelessWidget {
-  const _CycleTabContent({
-    required this.title,
-    required this.dueType,
-  });
+  const _CycleTabContent({required this.title, required this.dueType});
 
   final String title;
   final PriorityBillDueType dueType;
@@ -88,11 +82,17 @@ class _CycleTabContent extends StatelessWidget {
       builder: (context, state, _) {
         final bool isDay20 = dueType == PriorityBillDueType.day20;
         final CycleType cycleType = isDay20 ? CycleType.day20 : CycleType.day5;
-        final String cycleBucket =
-            buildGoalChecklistBucket(cycleType, DateTime.now());
-        final List<String> generatedGoals =
-            generateActionableGoals(state, cycleType);
-        final double cash = isDay20 ? state.advanceAmount : state.settlementAmount;
+        final String cycleBucket = buildGoalChecklistBucket(
+          cycleType,
+          DateTime.now(),
+        );
+        final List<String> generatedGoals = generateActionableGoals(
+          state,
+          cycleType,
+        );
+        final double cash = isDay20
+            ? state.advanceAmount
+            : state.settlementAmount;
         final List<PriorityBill> cycleBills = state.bills.where((bill) {
           if (!bill.active) {
             return false;
@@ -117,23 +117,31 @@ class _CycleTabContent extends StatelessWidget {
           serasaMin: state.goals.serasaMinPerCycle,
         );
 
-        final double beerAllowance = calcBeerAllowance(state.goals, safeRemainder);
+        final double beerAllowance = calcBeerAllowance(
+          state.goals,
+          safeRemainder,
+        );
 
         final double cyclePool = math.max(cash - prioritiesPending, 0.0);
         final double reserveProgress = state.goals.reserveMinPerCycle <= 0
             ? 1.0
             : math.min(cyclePool / state.goals.reserveMinPerCycle, 1.0);
-        final double afterReserve =
-            math.max(cyclePool - state.goals.reserveMinPerCycle, 0.0);
+        final double afterReserve = math.max(
+          cyclePool - state.goals.reserveMinPerCycle,
+          0.0,
+        );
         final double serasaProgress = state.goals.serasaMinPerCycle <= 0
             ? 1.0
             : math.min(afterReserve / state.goals.serasaMinPerCycle, 1.0);
 
         String blockedReason = '';
         if (beerAllowance <= 0) {
-          if (cash <= prioritiesPending) {
+          if (state.beerReasonToday == 'Hoje não é folga') {
+            blockedReason = 'Sem cerveja hoje: não é folga';
+          } else if (cash <= prioritiesPending) {
             blockedReason = 'prioridades do ciclo consomem todo o caixa';
-          } else if (cash <= prioritiesPending + state.goals.reserveMinPerCycle) {
+          } else if (cash <=
+              prioritiesPending + state.goals.reserveMinPerCycle) {
             blockedReason = 'reserva minima ainda nao atingida';
           } else if (cash <=
               prioritiesPending +
@@ -150,9 +158,9 @@ class _CycleTabContent extends StatelessWidget {
           children: [
             Text(
               'Metas sugeridas',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             ...generatedGoals.map(
@@ -165,10 +173,10 @@ class _CycleTabContent extends StatelessWidget {
                     ),
                     onChanged: (value) {
                       context.read<AppState>().setGoalDone(
-                            cycleBucket: cycleBucket,
-                            goal: goal,
-                            done: value ?? false,
-                          );
+                        cycleBucket: cycleBucket,
+                        goal: goal,
+                        done: value ?? false,
+                      );
                     },
                     title: Text(goal),
                     controlAffinity: ListTileControlAffinity.leading,
@@ -186,16 +194,14 @@ class _CycleTabContent extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Quanto cai: ${currency.format(cash)}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
@@ -205,9 +211,9 @@ class _CycleTabContent extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Prioridades a pagar',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             if (cycleBills.isEmpty)
@@ -217,10 +223,7 @@ class _CycleTabContent extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.celebration_outlined,
-                          size: 28,
-                        ),
+                        Icon(Icons.celebration_outlined, size: 28),
                         SizedBox(height: 8),
                         Text('Nenhuma prioridade ativa neste ciclo.'),
                       ],
@@ -264,9 +267,9 @@ class _CycleTabContent extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Metas do ciclo',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             _AnimatedCycleCard(
@@ -277,7 +280,10 @@ class _CycleTabContent extends StatelessWidget {
                     children: [
                       _GoalProgressRow(
                         label: 'Reserva minima',
-                        current: math.min(cyclePool, state.goals.reserveMinPerCycle),
+                        current: math.min(
+                          cyclePool,
+                          state.goals.reserveMinPerCycle,
+                        ),
                         target: state.goals.reserveMinPerCycle,
                         progress: reserveProgress,
                         formatter: currency,
@@ -285,8 +291,10 @@ class _CycleTabContent extends StatelessWidget {
                       const SizedBox(height: 12),
                       _GoalProgressRow(
                         label: 'Serasa minima',
-                        current:
-                            math.min(afterReserve, state.goals.serasaMinPerCycle),
+                        current: math.min(
+                          afterReserve,
+                          state.goals.serasaMinPerCycle,
+                        ),
                         target: state.goals.serasaMinPerCycle,
                         progress: serasaProgress,
                         formatter: currency,
@@ -299,11 +307,32 @@ class _CycleTabContent extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Diversao',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
+            if (state.goals.beerMonthlyCap > 0) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cerveja no mes: ${currency.format(state.beerSpentThisMonth)} / ${currency.format(state.goals.beerMonthlyCap)}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      Text(
+                        'Folgas restantes: ${state.offDaysRemainingThisMonth}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             _AnimatedCycleCard(
               child: Card(
                 child: Padding(
@@ -311,9 +340,8 @@ class _CycleTabContent extends StatelessWidget {
                   child: beerAllowance > 0
                       ? Text(
                           'Pode ate ${currency.format(beerAllowance)}',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         )
                       : Text(
                           'Hoje nao pode: $blockedReason',
@@ -352,10 +380,7 @@ class _GoalProgressRow extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              child: Text(label, style: Theme.of(context).textTheme.titleSmall),
             ),
             Text('${formatter.format(current)} / ${formatter.format(target)}'),
           ],
@@ -365,10 +390,7 @@ class _GoalProgressRow extends StatelessWidget {
           duration: const Duration(milliseconds: 500),
           tween: Tween<double>(begin: 0, end: progress),
           builder: (context, value, _) {
-            return LinearProgressIndicator(
-              value: value,
-              minHeight: 10,
-            );
+            return LinearProgressIndicator(value: value, minHeight: 10);
           },
         ),
       ],

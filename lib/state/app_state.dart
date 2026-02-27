@@ -45,7 +45,57 @@ class AppState extends ChangeNotifier {
   double get settlementAmount =>
       calcSettlementAfterPayrollDeductions(_config, _deductions);
 
+  bool _isTodayOffDay() {
+    final DateTime now = DateTime.now();
+    final String year = now.year.toString().padLeft(4, '0');
+    final String month = now.month.toString().padLeft(2, '0');
+    final String day = now.day.toString().padLeft(2, '0');
+    final String todayKey = '$year-$month-$day';
+    return _offDays.contains(todayKey);
+  }
+
+  double get beerSpentThisMonth {
+    final DateTime now = DateTime.now();
+    final int currentMonth = now.month;
+    final int currentYear = now.year;
+    return _ledger
+        .where((entry) {
+          if (entry.date.month != currentMonth ||
+              entry.date.year != currentYear) {
+            return false;
+          }
+          return entry.category == 'lazer' || entry.category == 'Cerveja';
+        })
+        .fold(0.0, (sum, entry) => sum + entry.amount);
+  }
+
+  int get offDaysRemainingThisMonth {
+    final DateTime now = DateTime.now();
+    final int currentMonth = now.month;
+    final int currentYear = now.year;
+    return _offDays.where((dateKey) {
+      final List<String> parts = dateKey.split('-');
+      if (parts.length != 3) {
+        return false;
+      }
+      final int year = int.tryParse(parts[0]) ?? 0;
+      final int month = int.tryParse(parts[1]) ?? 0;
+      final int day = int.tryParse(parts[2]) ?? 0;
+      if (year != currentYear || month != currentMonth) {
+        return false;
+      }
+      final DateTime dateOfOffDay = DateTime(year, month, day);
+      return dateOfOffDay.isAfter(now) ||
+          (dateOfOffDay.day == now.day &&
+              dateOfOffDay.month == now.month &&
+              dateOfOffDay.year == now.year);
+    }).length;
+  }
+
   double get beerAllowanceToday {
+    if (!_isTodayOffDay()) {
+      return 0.0;
+    }
     final double cash = _cashViewMode == CashViewMode.advance
         ? advanceAmount
         : settlementAmount;
@@ -58,7 +108,26 @@ class AppState extends ChangeNotifier {
       reserveMin: _goals.reserveMinPerCycle,
       serasaMin: _goals.serasaMinPerCycle,
     );
-    return calcBeerAllowance(_goals, safeRemainder);
+    final double safeBasedAllowance = calcBeerAllowance(_goals, safeRemainder);
+
+    if (_goals.beerMonthlyCap <= 0) {
+      return safeBasedAllowance;
+    }
+
+    final double monthlyRemaining = (_goals.beerMonthlyCap - beerSpentThisMonth)
+        .clamp(0.0, double.infinity);
+    final int offDaysRemaining = offDaysRemainingThisMonth.clamp(1, 999);
+    final double rateLimit = monthlyRemaining / offDaysRemaining;
+
+    return [
+      _goals.beerMaxAbsolute,
+      safeBasedAllowance,
+      rateLimit,
+    ].reduce((a, b) => a < b ? a : b);
+  }
+
+  String get beerReasonToday {
+    return _isTodayOffDay() ? 'OK' : 'Hoje não é folga';
   }
 
   Future<void> load() async {
@@ -244,12 +313,14 @@ class AppState extends ChangeNotifier {
     required double serasaMinPerCycle,
     required double beerMaxAbsolute,
     required double beerPctOfSafeRemainder,
+    double beerMonthlyCap = 0,
   }) async {
     _goals = GoalConfig(
       reserveMinPerCycle: reserveMinPerCycle,
       serasaMinPerCycle: serasaMinPerCycle,
       beerMaxAbsolute: beerMaxAbsolute,
       beerPctOfSafeRemainder: beerPctOfSafeRemainder,
+      beerMonthlyCap: beerMonthlyCap,
     );
     await _store.saveGoals(_goals);
     notifyListeners();
@@ -320,7 +391,7 @@ class AppState extends ChangeNotifier {
     _deductions = const [
       PayrollDeduction(
         id: 'example-1',
-        name: 'Plano de saude',
+        name: 'Plano de saúde',
         amount: 220,
         active: true,
       ),
@@ -336,6 +407,7 @@ class AppState extends ChangeNotifier {
       serasaMinPerCycle: 250,
       beerMaxAbsolute: 120,
       beerPctOfSafeRemainder: 0.15,
+      beerMonthlyCap: 500,
     );
 
     await _store.saveConfig(_config);

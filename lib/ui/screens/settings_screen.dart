@@ -15,16 +15,21 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _grossSalaryController = TextEditingController();
   final TextEditingController _advancePctController = TextEditingController();
-  final TextEditingController _settlementPctController = TextEditingController();
+  final TextEditingController _settlementPctController =
+      TextEditingController();
 
   final TextEditingController _reserveMinController = TextEditingController();
   final TextEditingController _serasaMinController = TextEditingController();
   final TextEditingController _beerMaxController = TextEditingController();
   final TextEditingController _beerPctController = TextEditingController();
+  final TextEditingController _beerMonthlyCapController =
+      TextEditingController();
 
   bool _loaded = false;
-  final NumberFormat _currency =
-      NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final NumberFormat _currency = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+  );
 
   @override
   void didChangeDependencies() {
@@ -46,22 +51,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _serasaMinController.dispose();
     _beerMaxController.dispose();
     _beerPctController.dispose();
+    _beerMonthlyCapController.dispose();
     super.dispose();
   }
 
   void _syncControllers(AppState state) {
     _grossSalaryController.text = state.config.grossSalary.toStringAsFixed(2);
-    _advancePctController.text =
-        (state.config.advancePct * 100).toStringAsFixed(2);
-    _settlementPctController.text =
-        (state.config.settlementPct * 100).toStringAsFixed(2);
+    _advancePctController.text = (state.config.advancePct * 100)
+        .toStringAsFixed(2);
+    _settlementPctController.text = (state.config.settlementPct * 100)
+        .toStringAsFixed(2);
 
-    _reserveMinController.text =
-        state.goals.reserveMinPerCycle.toStringAsFixed(2);
-    _serasaMinController.text = state.goals.serasaMinPerCycle.toStringAsFixed(2);
+    _reserveMinController.text = state.goals.reserveMinPerCycle.toStringAsFixed(
+      2,
+    );
+    _serasaMinController.text = state.goals.serasaMinPerCycle.toStringAsFixed(
+      2,
+    );
     _beerMaxController.text = state.goals.beerMaxAbsolute.toStringAsFixed(2);
-    _beerPctController.text =
-        (state.goals.beerPctOfSafeRemainder * 100).toStringAsFixed(2);
+    _beerPctController.text = (state.goals.beerPctOfSafeRemainder * 100)
+        .toStringAsFixed(2);
+    _beerMonthlyCapController.text = state.goals.beerMonthlyCap.toStringAsFixed(
+      2,
+    );
   }
 
   double? _parseNumber(String value) {
@@ -81,15 +93,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _saveSalary(AppState state) async {
     final double? grossSalary = _parseNumber(_grossSalaryController.text);
     final double advancePct = _parsePercentField(_advancePctController.text);
-    final double settlementPct = _parsePercentField(_settlementPctController.text);
+    final double settlementPct = _parsePercentField(
+      _settlementPctController.text,
+    );
 
     if (grossSalary == null || grossSalary < 0) {
       _showError('Salario bruto invalido');
@@ -115,9 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Salario salvo')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Salario salvo')));
   }
 
   Future<void> _saveGoals(AppState state) async {
@@ -125,12 +139,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final double? serasaMin = _parseNumber(_serasaMinController.text);
     final double? beerMax = _parseNumber(_beerMaxController.text);
     final double beerPct = _parsePercentField(_beerPctController.text);
+    final double? beerMonthlyCap = _parseNumber(_beerMonthlyCapController.text);
 
-    if (reserveMin == null || serasaMin == null || beerMax == null) {
+    if (reserveMin == null ||
+        serasaMin == null ||
+        beerMax == null ||
+        beerMonthlyCap == null) {
       _showError('Preencha todos os valores das metas');
       return;
     }
-    if (reserveMin < 0 || serasaMin < 0 || beerMax < 0 || beerPct < 0) {
+    if (reserveMin < 0 ||
+        serasaMin < 0 ||
+        beerMax < 0 ||
+        beerPct < 0 ||
+        beerMonthlyCap < 0) {
       _showError('Valores das metas nao podem ser negativos');
       return;
     }
@@ -140,14 +162,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       serasaMinPerCycle: serasaMin,
       beerMaxAbsolute: beerMax,
       beerPctOfSafeRemainder: beerPct,
+      beerMonthlyCap: beerMonthlyCap,
     );
 
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Metas salvas')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Metas salvas')));
   }
 
   Future<void> _showDeductionDialog(
@@ -170,7 +193,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-              title: Text(initial == null ? 'Novo desconto' : 'Editar desconto'),
+              title: Text(
+                initial == null ? 'Novo desconto' : 'Editar desconto',
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -214,7 +239,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                       ScaffoldMessenger.of(rootContext).showSnackBar(
                         const SnackBar(
-                          content: Text('Nome e valor validos sao obrigatorios'),
+                          content: Text(
+                            'Nome e valor validos sao obrigatorios',
+                          ),
                         ),
                       );
                       return;
@@ -265,9 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: Consumer<AppState>(
         builder: (context, state, _) {
           return ListView(
@@ -362,7 +387,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () => _showDeductionDialog(context, state),
+                            onPressed: () =>
+                                _showDeductionDialog(context, state),
                             icon: const Icon(Icons.add),
                             tooltip: 'Adicionar desconto',
                           ),
@@ -374,8 +400,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).colorScheme.surfaceContainerHighest,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
@@ -399,12 +426,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             leading: Switch(
                               value: deduction.active,
                               onChanged: (value) async {
-                                await context.read<AppState>().updatePayrollDeduction(
-                                  id: deduction.id,
-                                  name: deduction.name,
-                                  amount: deduction.amount,
-                                  active: value,
-                                );
+                                await context
+                                    .read<AppState>()
+                                    .updatePayrollDeduction(
+                                      id: deduction.id,
+                                      name: deduction.name,
+                                      amount: deduction.amount,
+                                      active: value,
+                                    );
                               },
                             ),
                             trailing: Wrap(
@@ -420,7 +449,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 IconButton(
                                   onPressed: () async {
-                                    await context.read<AppState>().removePayrollDeduction(deduction.id);
+                                    await context
+                                        .read<AppState>()
+                                        .removePayrollDeduction(deduction.id);
                                   },
                                   icon: const Icon(Icons.delete_outline),
                                 ),
@@ -483,6 +514,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           labelText: '% da sobra segura para cerveja',
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _beerMonthlyCapController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Limite cerveja por mes',
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       FilledButton(
                         onPressed: () => _saveGoals(state),
@@ -501,7 +542,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     return;
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Dados de exemplo restaurados')),
+                    const SnackBar(
+                      content: Text('Dados de exemplo restaurados'),
+                    ),
                   );
                 },
                 child: const Text('Restaurar dados de exemplo'),
