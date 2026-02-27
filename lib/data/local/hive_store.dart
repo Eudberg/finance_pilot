@@ -55,8 +55,9 @@ class HiveStore {
   }
 
   Future<void> saveDeductions(List<PayrollDeduction> deductions) async {
-    final List<Map<String, dynamic>> serialized =
-        deductions.map((item) => item.toMap()).toList();
+    final List<Map<String, dynamic>> serialized = deductions
+        .map((item) => item.toMap())
+        .toList();
     await _deductionsBox.put(_deductionsKey, serialized);
   }
 
@@ -67,13 +68,16 @@ class HiveStore {
     }
     return value
         .whereType<Map>()
-        .map((item) => PayrollDeduction.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => PayrollDeduction.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
   Future<void> saveBills(List<PriorityBill> bills) async {
-    final List<Map<String, dynamic>> serialized =
-        bills.map((item) => item.toMap()).toList();
+    final List<Map<String, dynamic>> serialized = bills
+        .map((item) => item.toMap())
+        .toList();
     await _billsBox.put(_billsKey, serialized);
   }
 
@@ -112,8 +116,10 @@ class HiveStore {
   }
 
   Map<String, dynamic> loadGoalChecklistState() {
-    final dynamic value =
-        _goalsBox.get(_goalChecklistStateKey, defaultValue: <String, dynamic>{});
+    final dynamic value = _goalsBox.get(
+      _goalChecklistStateKey,
+      defaultValue: <String, dynamic>{},
+    );
     if (value is! Map) {
       return <String, dynamic>{};
     }
@@ -125,8 +131,10 @@ class HiveStore {
   }
 
   bool loadNotificationsEnabled() {
-    final dynamic value =
-        _configBox.get(_notificationsEnabledKey, defaultValue: true);
+    final dynamic value = _configBox.get(
+      _notificationsEnabledKey,
+      defaultValue: true,
+    );
     if (value is bool) {
       return value;
     }
@@ -138,7 +146,7 @@ class HiveStore {
   }
 
   Future<Set<String>> loadOffDays() async {
-    final dynamic value = _offDaysBox.get(_offDaysKey, defaultValue: <String>{});
+    final dynamic value = _offDaysBox.get(_offDaysKey);
     if (value is Set) {
       return value.whereType<String>().toSet();
     }
@@ -155,6 +163,7 @@ class HiveStore {
     } else {
       offDays.add(dateKey);
     }
-    await _offDaysBox.put(_offDaysKey, offDays);
+    final List<String> sortedList = offDays.toList()..sort();
+    await _offDaysBox.put(_offDaysKey, sortedList);
   }
 }
