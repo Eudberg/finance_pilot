@@ -1,9 +1,13 @@
 import 'package:finance_pilot/data/local/hive_store.dart';
 import 'package:finance_pilot/data/local/notification_service.dart';
 import 'package:finance_pilot/domain/engine/finance_engine.dart';
+import 'package:finance_pilot/domain/engine/forecast_engine.dart';
+import 'package:finance_pilot/domain/engine/planner_engine.dart';
+import 'package:finance_pilot/domain/models/annual_plan_config.dart';
 import 'package:finance_pilot/domain/models/goal_config.dart';
 import 'package:finance_pilot/domain/models/ledger_entry.dart';
 import 'package:finance_pilot/domain/models/payroll_deduction.dart';
+import 'package:finance_pilot/domain/models/planned_action.dart';
 import 'package:finance_pilot/domain/models/priority_bill.dart';
 import 'package:finance_pilot/domain/models/salary_config.dart';
 import 'package:flutter/foundation.dart';
@@ -30,6 +34,7 @@ class AppState extends ChangeNotifier {
   Set<String> _offDays = const <String>{};
   bool _notificationsEnabled = true;
   CashViewMode _cashViewMode = CashViewMode.settlement;
+  AnnualPlanConfig _annualPlan = AnnualPlanConfig.defaults();
 
   SalaryConfig get config => _config;
   List<PayrollDeduction> get deductions => List.unmodifiable(_deductions);
@@ -39,11 +44,79 @@ class AppState extends ChangeNotifier {
   Set<String> get offDays => Set.unmodifiable(_offDays);
   bool get notificationsEnabled => _notificationsEnabled;
   CashViewMode get cashViewMode => _cashViewMode;
+  AnnualPlanConfig get annualPlan => _annualPlan;
 
   double get advanceAmount => calcAdvance(_config);
 
   double get settlementAmount =>
       calcSettlementAfterPayrollDeductions(_config, _deductions);
+
+  /// Saldo atual de reserva (soma todas as entradas com categoria 'reserve').
+  double get reserveCurrent {
+    return _ledger
+        .where(
+          (entry) =>
+              entry.category == 'reserve' ||
+              entry.category == 'reserve_deposit' ||
+              entry.category == 'Reserve',
+        )
+        .fold(0.0, (sum, entry) => sum + entry.amount);
+  }
+
+  /// Cash disponível no adiantamento (20º).
+  double get cash20 => advanceAmount;
+
+  /// Cash disponível no acerto (5º).
+  double get cash5 => settlementAmount;
+
+  /// Meses restantes até dezembro do ano da meta anual.
+  int get monthsRemaining =>
+      monthsRemainingToDec(DateTime.now(), _annualPlan.year);
+
+  /// Média móvel mensal de depósitos de reserva (últimos 3 meses).
+  double get avgMonthlyDeposit => avgMonthlyReserveDeposit(_ledger);
+
+  /// Previsão de saldo em dezembro.
+  double get forecastAtDec =>
+      forecastReserveAtDec(reserveCurrent, avgMonthlyDeposit, monthsRemaining);
+
+  /// Depósito mensal necessário para atingir a meta.
+  double get requiredMonthly => requiredMonthlyDeposit(
+    reserveCurrent,
+    _annualPlan.reserveTarget,
+    monthsRemaining,
+  );
+
+  /// Ciclo de depósito necessário, distribuído proporcionalmente.
+  Map<String, double> get requiredCycles =>
+      splitMonthlyToCycles(requiredMonthly, cash20, cash5);
+
+  /// Depósito necessário no adiantamento (20º).
+  double get requiredCycle20 => requiredCycles['cycle20'] ?? 0.0;
+
+  /// Depósito necessário no acerto (5º).
+  double get requiredCycle5 => requiredCycles['cycle5'] ?? 0.0;
+
+  /// Ano atual.
+  int get currentYear => DateTime.now().year;
+
+  /// Mês atual.
+  int get currentMonth => DateTime.now().month;
+
+  /// Plano mensal de ações (gerado deterministicamente).
+  List<PlannedAction> get monthlyPlan => generateMonthlyPlan(
+    year: currentYear,
+    month: currentMonth,
+    config: _config,
+    deductions: _deductions,
+    bills: _bills,
+    goals: _goals,
+    offDays: _offDays,
+    requiredCycle20: requiredCycle20,
+    requiredCycle5: requiredCycle5,
+    advanceAmount: advanceAmount,
+    settlementAmount: settlementAmount,
+  );
 
   String dateKeyOf(DateTime d) {
     final String year = d.year.toString().padLeft(4, '0');
@@ -133,6 +206,7 @@ class AppState extends ChangeNotifier {
   Future<void> load() async {
     final SalaryConfig? loadedConfig = _store.loadConfig();
     final GoalConfig? loadedGoals = _store.loadGoals();
+    final AnnualPlanConfig? loadedAnnualPlan = _store.loadAnnualPlanConfig();
 
     _config = loadedConfig ?? _config;
     _deductions = _store.loadDeductions();
@@ -141,6 +215,7 @@ class AppState extends ChangeNotifier {
     _ledger = _store.listLedgerEntries();
     _offDays = await _store.loadOffDays();
     _notificationsEnabled = _store.loadNotificationsEnabled();
+    _annualPlan = loadedAnnualPlan ?? AnnualPlanConfig.defaults();
     await NotificationService.instance.scheduleCycleReminders(
       enabled: _notificationsEnabled,
     );
@@ -168,6 +243,15 @@ class AppState extends ChangeNotifier {
       return;
     }
     _cashViewMode = mode;
+    notifyListeners();
+  }
+
+  Future<void> setReserveTarget(double value) async {
+    _annualPlan = _annualPlan.copyWith(
+      reserveTarget: value,
+      updatedAt: DateTime.now(),
+    );
+    await _store.saveAnnualPlanConfig(_annualPlan);
     notifyListeners();
   }
 

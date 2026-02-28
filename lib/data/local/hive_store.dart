@@ -1,3 +1,4 @@
+import 'package:finance_pilot/domain/models/annual_plan_config.dart';
 import 'package:finance_pilot/domain/models/goal_config.dart';
 import 'package:finance_pilot/domain/models/ledger_entry.dart';
 import 'package:finance_pilot/domain/models/payroll_deduction.dart';
@@ -16,6 +17,7 @@ class HiveStore {
   static const String goalsBoxName = 'goalsBox';
   static const String ledgerBoxName = 'ledgerBox';
   static const String offDaysBoxName = 'offDaysBox';
+  static const String annualPlanBoxName = 'annualPlanBox';
 
   static const String _salaryConfigKey = 'salaryConfig';
   static const String _deductionsKey = 'deductions';
@@ -24,6 +26,7 @@ class HiveStore {
   static const String _goalChecklistStateKey = 'goalChecklistState';
   static const String _notificationsEnabledKey = 'notificationsEnabled';
   static const String _offDaysKey = 'offDays';
+  static const String _annualPlanConfigKey = 'annualPlanConfig';
 
   late final Box<dynamic> _configBox;
   late final Box<dynamic> _deductionsBox;
@@ -31,6 +34,7 @@ class HiveStore {
   late final Box<dynamic> _goalsBox;
   late final Box<dynamic> _ledgerBox;
   late final Box<dynamic> _offDaysBox;
+  late final Box<dynamic> _annualPlanBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -40,6 +44,7 @@ class HiveStore {
     _goalsBox = await Hive.openBox<dynamic>(goalsBoxName);
     _ledgerBox = await Hive.openBox<dynamic>(ledgerBoxName);
     _offDaysBox = await Hive.openBox<dynamic>(offDaysBoxName);
+    _annualPlanBox = await Hive.openBox<dynamic>(annualPlanBoxName);
   }
 
   Future<void> saveConfig(SalaryConfig config) async {
@@ -165,5 +170,17 @@ class HiveStore {
     }
     final List<String> sortedList = offDays.toList()..sort();
     await _offDaysBox.put(_offDaysKey, sortedList);
+  }
+
+  Future<void> saveAnnualPlanConfig(AnnualPlanConfig config) async {
+    await _annualPlanBox.put(_annualPlanConfigKey, config.toMap());
+  }
+
+  AnnualPlanConfig? loadAnnualPlanConfig() {
+    final dynamic value = _annualPlanBox.get(_annualPlanConfigKey);
+    if (value is! Map) {
+      return null;
+    }
+    return AnnualPlanConfig.fromMap(Map<String, dynamic>.from(value));
   }
 }

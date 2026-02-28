@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:finance_pilot/ui/screens/cycle_checklist_screen.dart';
+import 'package:finance_pilot/ui/screens/home_screen.dart';
 import 'package:finance_pilot/ui/screens/off_days_calendar_screen.dart';
 import 'package:finance_pilot/ui/screens/settings_screen.dart';
 
@@ -14,7 +15,7 @@ class _ShellScreenState extends State<ShellScreen> {
   int _selectedIndex = 0;
 
   late final List<Widget> _screens = [
-    const _HomeTab(),
+    const HomeScreen(),
     const CycleChecklistScreen(),
     const _ObjectivesTab(),
     const _DebtTab(),
@@ -47,18 +48,6 @@ class _ShellScreenState extends State<ShellScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Config'),
         ],
       ),
-    );
-  }
-}
-
-class _HomeTab extends StatelessWidget {
-  const _HomeTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: const Center(child: Text('Home')),
     );
   }
 }
